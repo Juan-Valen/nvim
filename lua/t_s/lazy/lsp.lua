@@ -1,3 +1,14 @@
+local root_files = {
+    '.luarc.json',
+    '.luarc.jsonc',
+    '.luacheckrc',
+    '.stylua.toml',
+    'stylua.toml',
+    'selene.toml',
+    'selene.yml',
+    '.git',
+}
+
 return {
     "neovim/nvim-lspconfig",
     dependencies = {
@@ -25,9 +36,83 @@ return {
             "force",
             {},
             vim.lsp.protocol.make_client_capabilities(),
-            cmp_lsp.default_capabilities()
-        )
+            cmp_lsp.default_capabilities())
 
+        local lspconfig = require("lspconfig")
+        --        lspconfig.[server_name].setup {
+        --            capabilities = capabilities
+        --        }
+        lspconfig.zls.setup({
+            root_dir = lspconfig.util.root_pattern(".git", "build.zig", "zls.json"),
+            settings = {
+                zls = {
+                    enable_inlay_hints = true,
+                    enable_snippets = true,
+                    warn_style = true,
+                },
+            },
+        })
+        vim.g.zig_fmt_parse_errors = 0
+        vim.g.zig_fmt_autosave = 0
+
+        lspconfig.lua_ls.setup {
+            capabilities = capabilities,
+            settings = {
+                Lua = {
+                    format = {
+                        enable = true,
+                        -- Put format options here
+                        -- NOTE: the value should be STRING!!
+                        defaultConfig = {
+                            indent_style = "space",
+                            indent_size = "2",
+                        }
+                    },
+                }
+            }
+        }
+        lspconfig.cssls.setup({
+            capabilities = capabilities,
+            filetypes = { "css", "scss", "less" },
+        })
+        lspconfig.tailwindcss.setup({
+            capabilities = capabilities,
+            filetypes = { "html", "css", "scss", "javascript", "javascriptreact", "typescript", "typescriptreact", "vue", "svelte" },
+            settings = {
+                tailwindCSS = {
+                    experimental = {
+                        classRegex = {
+                            "tw`([^`]*)",
+                            "tw=\"([^\"]*)",
+                            "tw={\"([^\"}]*)",
+                            "tw\\.\\w+`([^`]*)",
+                            "tw\\(.*?\\)`([^`]*)",
+                        },
+                    },
+                },
+            },
+        })
+        lspconfig.clangd.setup({
+            capabilities = capabilities,
+            filetypes = { "c", "cpp", "objc", "objcpp", "cuda" },
+            cmd = { "clangd", '--query-driver=/usr/bin/arm-none-eabi-*', '--compile-commands-dir=build/' },
+        })
+        lspconfig.eslint.setup({
+            capabilities = capabilities,
+            filetypes = { "javascript", "javascriptreact", "javascript.jsx", "typescript", "typescriptreact", "typescript.tsx", "vue", "svelte", "astro", "htmlangular" },
+        })
+        lspconfig.gopls.setup({
+            capabilities = capabilities,
+            filetypes = { "go", "gomod", "gowork", "gotmpl" },
+        })
+        lspconfig.jdtls.setup({
+            capabilities = capabilities,
+            filetypes = { "java" },
+        })
+        lspconfig.templ.setup({
+            capabilities = capabilities,
+            filetypes = { "templ" },
+        })
         require("fidget").setup({})
         require("mason").setup()
         require("mason-lspconfig").setup({
@@ -35,48 +120,16 @@ return {
                 "lua_ls",
                 "rust_analyzer",
                 "gopls",
-                "templ",
+                "tailwindcss",
                 "html",
-                "htmx",
-                "templ",
+                "clangd",
+                "eslint",
+                "marksman",
+                "cssls",
+                "jdtls"
+                --"ts_ls",
+                --"tsgo",
             },
-            handlers = {
-                function(server_name) -- default handler (optional)
-                    require("lspconfig")[server_name].setup {
-                        capabilities = capabilities
-                    }
-                end,
-
-                zls = function()
-                    local lspconfig = require("lspconfig")
-                    lspconfig.zls.setup({
-                        root_dir = lspconfig.util.root_pattern(".git", "build.zig", "zls.json"),
-                        settings = {
-                            zls = {
-                                enable_inlay_hints = true,
-                                enable_snippets = true,
-                                warn_style = true,
-                            },
-                        },
-                    })
-                    vim.g.zig_fmt_parse_errors = 0
-                    vim.g.zig_fmt_autosave = 0
-                end,
-                ["lua_ls"] = function()
-                    local lspconfig = require("lspconfig")
-                    lspconfig.lua_ls.setup {
-                        capabilities = capabilities,
-                        settings = {
-                            Lua = {
-                                runtime = { version = "Lua 5.1" },
-                                diagnostics = {
-                                    globals = { "bit", "vim", "it", "describe", "before_each", "after_each" },
-                                }
-                            }
-                        }
-                    }
-                end,
-            }
         })
 
         local cmp_select = { behavior = cmp.SelectBehavior.Select }
@@ -94,17 +147,17 @@ return {
                 ["<C-Space>"] = cmp.mapping.complete(),
             }),
             sources = cmp.config.sources({
-                    { name = 'nvim_lsp' },
-                    { name = 'luasnip' }, -- For luasnip users.
-                }, {
-                    { name = 'buffer' },
-                },
-                { name = 'path' } -- file system paths
-            )
+                { name = 'nvim_lsp' },
+                { name = 'luasnip' }, -- For luasnip users.
+                --{ name = "copilot", group_index = 2 },
+            }, {
+                { name = 'buffer' },
+                { name = 'path' },
+            })
         })
 
         vim.diagnostic.config({
-            -- update_in_insert = true,
+            update_in_insert = true,
             float = {
                 focusable = false,
                 style = "minimal",
